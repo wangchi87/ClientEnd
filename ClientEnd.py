@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 
-import socket, sys, select
+import socket, sys, select, traceback
 
 from SocketWrapper import *
 
@@ -25,7 +26,7 @@ class Client:
             self.__mainLoop()
 
     def __closeClient(self):
-        self.clientSock.send("CLIENT_SHUTDOWN")
+        socketSend(self.clientSock, "CLIENT_SHUTDOWN")
         self.clientSock.close()
 
     def __mainLoop(self):
@@ -46,14 +47,18 @@ class Client:
                             print "this connection is not available"
                             quitProgram = True
                         else:
-                            if data == 'SERVER_SHUTDOWN':
+                            if data == 'server msg: SERVER_SHUTDOWN':
+                                print "server is shut down"
                                 quitProgram = True
                                 break
                             print data
                     else:
                         data = sys.stdin.readline()
 
-                        if data == 'esc\n':
+                        # 当 直接从terminal关闭程序的时候，貌似程序并不会抛出异常
+                        # 反之，程序会读取一个空的字符串；此处，我们认为''代表此种情况
+                        # 但是时候有更合理的解决方案？
+                        if data == 'esc\n' or data == '':
                             quitProgram = True
                             break
                         else:
@@ -65,6 +70,18 @@ class Client:
                     break
 
         except KeyboardInterrupt:
+            print "KeyboardInterrupt"
+            f = open("keyboard.txt", 'a')
+            traceback.print_exc(file=f)
+            f.flush()
+            f.close()
+            self.__closeClient()
+
+        except SystemExit:
+            f = open("c:log.txt", 'a')
+            traceback.print_exc(file=f)
+            f.flush()
+            f.close()
             self.__closeClient()
 
 if __name__ == "__main__":
